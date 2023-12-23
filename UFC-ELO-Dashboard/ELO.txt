@@ -1,0 +1,29 @@
+ELO rating system:
+This is a system method for calculating the relative skill levels of players in zero sum games.
+Zero sum games include games such as chess. This system is suitable for combat sports ranking such 
+as the Mixed Martial Arts, Taekwondo and Jiu Jitsu combat games. 
+This system was developed in the 1960s as a primary rating system for solely chess tournaments.
+However, over the years, different sports have adopted the system and tweaked it in a way or another
+to suit their sports systems without distorting the fundamental blueprint. These sports include
+National Football League for American football and National Basketball Association for basketball 
+tournaments.
+The system is interestingly named after its developer `Arpad Elo`
+
+The fundamental formula of ELO rating system gives the expected result of a battle, be it of wits
+or a brawn, as a function of the rating difference of the two fighters. For instance given two 
+contenders A and B:
+
+Probability A beats B = 1 / (1 + 10 ^ [(ELO rating of B - ELO rating of A) / 400])
+
+This formula bears a close connection to the logistic formula with a small difference where this 
+formula uses 10 for the base, whereas the logistic formula use Euler's Number (e).
+When plotted, this formula outputs a smooth sigmoid function for the probability function which 
+resembles an S.
+
+In the case of a tournament, a players ELO must be updated afterwards. The formula used to update
+the ELO is given as follows:
+
+New ELO of player A = Old ELO of player A + K {(r - Probability A breats opponent)}
+
+where r = 1 if A wins, r = 0 if A loses and 0.5 Otherwise
+      K is a scaling factor that calculates how fast ratings change.
