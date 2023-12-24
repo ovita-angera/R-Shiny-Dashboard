@@ -59,6 +59,9 @@ ui <- dashboardPage(
       menuItem("About ELO",
                tabName = "about_elo_tab",
                icon = icon("code")),
+      menuItem("Top 5",
+               tabName = "top_5_contenders",
+               icon = icon("crown")),
       menuItem("Weight Class",
                tabName = "weight_class_tab",
                icon = icon("chart-simple")),
@@ -71,9 +74,19 @@ ui <- dashboardPage(
     tabItems(
       tabItem(tabName = "about_elo_tab",
               textOutput("about_elo")),
+      tabItem(tabName = "top_5_contenders",
+              fluidRow(box(selectInput("w_class_input_0", "weight class",
+                                       choices = w_classes)),
+                       box(sliderInput(inputId = "k_0",
+                                       label = "K for ELO",
+                                       min = 1,
+                                       max = 100,
+                                       value = 20))),
+              box(tableOutput("top_5"))
+              ),
       tabItem(tabName = "weight_class_tab",
               fluidRow(box(selectInput("weight_class_input", "weight class",
-                                       choices = w_classes$weight_class)),
+                                       choices = w_classes)),
                        box(sliderInput(inputId = "k",
                                        label = "K for ELO",
                                        min = 1,
@@ -81,16 +94,15 @@ ui <- dashboardPage(
                                        value = 20))
                        ),
               box(plotOutput("elo_ts")),
-              box(plotOutput("elo_dist")),
-              box(tableOutput("top_5_table"))
+              box(plotOutput("elo_dist"))
               ),
       tabItem(tabName = "head_tab",
               fluidRow(box(uiOutput("fighter_selector")), 
                        box(uiOutput("opponent_selector"))),
               fluidRow(box(valueBoxOutput("fighter_card")),
                        box(valueBoxOutput("opponent_card"))),
-              box(selectInput("w_class_input", "weight class",
-                              choices = w_classes$weight_class)),
+              box(selectInput("w_class_input_1", "weight class",
+                              choices = w_classes)),
               box(sliderInput(inputId = "k_2",
                               label = "K for ELO",
                               min = 1,
@@ -109,6 +121,13 @@ server <- function(input, output, session) {
   })
   
   # render the table of the top 5 fighters as per different values of k
+  output$top_5 <- renderTable({
+    table_df <- create_elo_data(input$k_0) %>%
+      filter(weight_class == input$w_class_input_0)
+    
+    get_top_5(table_df, fighter, elo)
+  })
+  
   output$top_5_table <- renderTable({
     table_df <- create_elo_data(input$k) %>%
       filter(weight_class == input$weight_class_input)
@@ -144,18 +163,18 @@ server <- function(input, output, session) {
   # create a selector for both the fighter and the opponent
   output$fighter_selector <- renderUI({
     fighter_selector_df <- create_elo_data(input$k_2) %>%
-      filter(weight_class == input$w_class_input) %>%
+      filter(weight_class == input$w_class_input_1) %>%
       select(fighter) %>%
       distinct() %>%
       arrange(fighter)
     
     selectInput(inputId = "v_fighter",
                 label = "Fighter",
-                choices = fighter_selector_df$fighter)
+                choices = fighter_selector_df)
   })
   output$opponent_selector <- renderUI({
     opponent_selector_df <- create_elo_data(input$k_2) %>%
-      filter(weight_class == input$w_class_input & 
+      filter(weight_class == input$w_class_input_1 & 
                fighter != input$v_fighter) %>%
       select(fighter) %>%
       distinct() %>%
@@ -163,7 +182,7 @@ server <- function(input, output, session) {
     
     selectInput(inputId = "v_opponent",
                 label = "Opponent",
-                choices = opponent_selector_df$fighter)
+                choices = opponent_selector_df)
   })
   
   output$fighter_card <- renderValueBox({
