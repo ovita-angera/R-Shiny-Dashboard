@@ -18,6 +18,13 @@ w_classes <- elo_df %>%
   select(weight_class) %>%
   distinct() %>%
   arrange(weight_class)
+
+# select fighters
+fighters <- df %>%
+  select(fighter) %>%
+  distinct() %>%
+  arrange(fighter)
+
 # define a function to create elo data with the parameter k as the main input
 create_elo_data <- function(k, data = elo_df){
   temp_df <- elo.run(winner ~ fighter + opponent , k = k,
@@ -52,6 +59,7 @@ get_top_5 <- function(df, var1, var2) {
 
 # create user interface using the `dashboardPage()` to leverage on an already implemented
 # dashboard canvas that allows easy additions to it to make work easier 
+
 ui <- dashboardPage(
   dashboardHeader(title = "UFC Dashboard"),
   dashboardSidebar(
@@ -67,7 +75,10 @@ ui <- dashboardPage(
                icon = icon("chart-simple")),
       menuItem("Head to head",
                tabName = "head_tab",
-               icon = icon("fire"))
+               icon = icon("fire")),
+      menuItem("ELO Change",
+               tabName = "fighter_elo_change",
+               icon = icon("user"))
       )
   ),
   dashboardBody(
@@ -108,13 +119,22 @@ ui <- dashboardPage(
                               min = 1,
                               max = 100,
                               value = 20))
-              )
+              ),
+      tabItem(tabName = "fighter_elo_change",
+              fluidRow(
+                box(selectizeInput("contender", "Fighter",
+                              choices = NULL))
+                ),
+              box(plotOutput("fighter_elo_change")))
     )
   )
 )
 
 
 server <- function(input, output, session) {
+  contender <- reactive(input$contender)
+  # update the selectizeInput
+  updateSelectizeInput(session, "contender", choices = fighters)
   # render the details about ELO on the first menu item
   output$about_elo <- renderText({
     about_elo
@@ -149,7 +169,7 @@ server <- function(input, output, session) {
       geom_point(data = elo_ts_df %>% filter(fighter %in% top_5_fighters$fighter),
                  aes(x = date, y = elo, color = fighter)) +
       theme(legend.position = "top")
-  })
+  }, res = 96)
   
   # render a fighter distribution plot that accounts for different weight class
   # elos
@@ -158,7 +178,7 @@ server <- function(input, output, session) {
       filter(weight_class == input$weight_class_input)
     
     ggplot(data = elo_dst, aes(x = elo)) + geom_histogram()
-  })
+  }, res = 96)
   
   # create a selector for both the fighter and the opponent
   output$fighter_selector <- renderUI({
@@ -217,6 +237,17 @@ server <- function(input, output, session) {
       icon = icon("hand-rock")
     )
   })
+  
+  output$fighter_elo_change <- renderPlot({
+    df %>%
+      filter(fighter == contender()) %>%
+      ggplot(aes(x = as.Date(date), y = fighter_elo)) +
+      geom_line() +
+      geom_point() +
+      labs(x = "Date",
+           y = "Fighter Elo",
+           title = paste0("ELO Curve for fighter ", contender()))
+  }, res = 96)
 }
 
 # Run the application 
